@@ -1,0 +1,320 @@
+
+ ORG $3000
+hello FCN "HELLO WORLD!123456789ABCDEFGHIJK"
+fast FCB 0
+ ORG $4000
+Start:
+;Main
+ PSHS A,B,X,Y,CC ;save state for future return to basic.
+ LBSR cls
+
+ LDY #$400
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$420
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$440
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$460
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$480
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$4A0
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$4C0
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$4E0
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$500
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$520
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$540
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$560
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$580
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$5A0
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$5C0
+ LDX #hello
+ LBSR writesub
+
+ LBSR wait
+ LDY #$5E0
+ LDX #hello
+ LBSR writesub
+
+
+ JMP RSDOS
+
+;Waste time
+wait: 
+ PSHS A,B
+ CLRA
+ CLRB
+waitloop1: 
+ INCA
+ CMPA #$FF
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBNE waitloop1
+ LDB fast ;check to see if we should only do half of the LBRNs
+ CMPB #1
+ LBEQ waitend 
+ CLRB
+waitloop2:
+ INCB
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ LBRN $4000
+ CMPB $FF
+ LBNE waitloop2
+waitend:
+ PULS A,B
+ RTS
+
+;cls subroutine uses Y and B
+ cls:
+ PSHS Y,B
+ LDY #$400
+ LDB #'  
+clear:
+ CMPY #$400+511 ;test for screen end
+ BEQ clsreturn
+ STB ,Y+
+ JMP clear
+clsreturn:
+ PULS Y,B
+ RTS
+
+
+;writesub writes null terminated string pointed to by X to screen pointed to by Y
+;X can point anywhere in ram Y must be between $400 and $400+511
+writesub: 
+ LDA #1
+ STA fast
+writeloop:
+ LDA ,X+ ;grab char from string
+ CMPA #00 ;check for null
+ BEQ writesubreturn
+ CMPY #$400+511 ;test for screen end
+ BEQ WRAP
+ LBSR wait 
+ STA ,Y+ ;write char to screen
+ JMP writeloop
+WRAP LDY #$400 ; reset screen pointer so we can wrap around for long strings. 
+ JMP writeloop
+writesubreturn:
+ LDA #0
+ STA fast
+ RTS
+
+
+;Return to RSDOS
+RSDOS PULS A,B,X,Y,CC restore state ;exit to RSDOS
+ RTS return to basic 
+ END Start
