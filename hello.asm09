@@ -1,316 +1,143 @@
 
  ORG $3000
-hello FCN "HELLO WORLD!123456789ABCDEFGHIJK"
-fast FCB 0
+hello FCN "HELLO WORLD!123456789ABCDEFGHIJK" ; hello world string.
+speed EQU $FA ; speed in ms for our wait routine. 
  ORG $4000
 Start:
 ;Main
+;XXX! make this a loop instead
  PSHS A,B,X,Y,CC ;save state for future return to basic.
- LBSR cls
+ JSR cls
 
  LDY #$400
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$420
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$440
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$460
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$480
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$4A0
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$4C0
  LDX #hello
- LBSR writesub
+ JSR writesub
 
  LBSR wait
  LDY #$4E0
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$500
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$520
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$540
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$560
  LDX #hello
- LBSR writesub
+ JSR writesub
 
  LBSR wait
  LDY #$580
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$5A0
  LDX #hello
- LBSR writesub
+ JSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$5C0
  LDX #hello
  LBSR writesub
 
- LBSR wait
+ JSR wait
  LDY #$5E0
  LDX #hello
- LBSR writesub
+ JSR writesub
 
 
  JMP RSDOS
 
 ;Waste time
-wait: 
- PSHS A,B
- CLRA
- CLRB
-waitloop1: 
- INCA
- CMPA #$FF
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBNE waitloop1
- LDB fast ;check to see if we should only do half of the LBRNs
- CMPB #1
- LBEQ waitend 
- CLRB
-waitloop2:
- INCB
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- LBRN $4000
- CMPB $FF
- LBNE waitloop2
-waitend:
- PULS A,B
+;based on example 12-11 of 6809 Assembly language programming
+; by Lance Leventhal. 
+wait:
+ PSHS A,B,CC
+ LDA speed
+DLY1 LDB speed ; load in speed in ms
+DLY DECB 
+ BNE DLY
+ DECA 
+ BNE DLY1
+ PULS A,B,CC
  RTS
 
-;cls subroutine uses Y and B
- cls:
- PSHS Y,B
- LDY #$400
- LDB #'  
-clear:
- CMPY #$400+511 ;test for screen end
- BEQ clsreturn
- STB ,Y+
- JMP clear
-clsreturn:
- PULS Y,B
+; cls subroutine that uses X and D 
+; Suggested by Simon Jonassen
+cls:
+ PSHS X,D
+ LDX #$400
+ LDD #$FFFF
+clsloop STD ,X++
+ CMPX #$600
+ BLO clsloop
+ PULS X,D
  RTS
+
 
 
 ;writesub writes null terminated string pointed to by X to screen pointed to by Y
 ;X can point anywhere in ram Y must be between $400 and $400+511
 writesub: 
- LDA #1
- STA fast
 writeloop:
+ LDA #100
+ STA speed ; set wait loop speed to 100ms
  LDA ,X+ ;grab char from string
  CMPA #00 ;check for null
  BEQ writesubreturn
  CMPY #$400+511 ;test for screen end
  BEQ WRAP
- LBSR wait 
+ JSR wait 
  STA ,Y+ ;write char to screen
  JMP writeloop
 WRAP LDY #$400 ; reset screen pointer so we can wrap around for long strings. 
  JMP writeloop
 writesubreturn:
- LDA #0
- STA fast
+ LDA #250
+ STA speed ; set wait loop speed to 250ms
  RTS
 
 
