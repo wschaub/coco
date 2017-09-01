@@ -4,13 +4,13 @@ Various projects for the Tandy Color computer.
 This repo contains various projects I'm working on for the Tandy Color Computer
 to teach me about 6809 assembly and interfacing with real hardware. 
 
-You should have lwasm, a recent version of mess and the mess tools on your system
+You should have lwasm, a recent version of mame and the mame tools on your system
 in order to build the various files. 
 
 The Makefile as it currently exists looks for test.asm09 as its source file
 and the make run and make debug targets will cause the file to be assembled and 
-a disk image to be built and then mess will be run and automatically load the file off of the disk image. 
-In the case of the debug target the mess debugger is opened.
+a disk image to be built and then mame will be run and automatically load the file off of the disk image. 
+In the case of the debug target the mame debugger is opened.
 
 I'm currently just linking the file I want to build as test.asm09 and then running make but will
 likely improve my very simple makefile in the future. 
