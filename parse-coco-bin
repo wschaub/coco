@@ -1,0 +1,257 @@
+#!/usr/bin/perl -w
+
+use strict;
+use Getopt::Long;
+use File::Basename;
+
+
+my $program = basename($0);
+my $version = "0.0.1";
+my $numErrors = 0;
+my $numWarnings = 0;
+my $dryRun = 0;
+my $verbose = 0;
+my $dumpContents = 0;
+my $dumpToRawFiles = 0;
+my $dumpToBinFiles = 0;
+
+
+sub usage
+{
+    my ($exitStatus) = @_;
+
+    print <<__EOF__;
+$program $version
+Copyright (C) 2013 Pierre Sarrazin <http://sarrazip.com/>
+
+Usage: $program [OPTIONS] BINFILE
+
+Dumps the list of blocks comprising the named CoCo binary file.
+
+Options:
+--help          Print this help page.
+--version       Print this program's name and version number.
+--not-really    Only show what would happen, do not do it for real.
+--verbose       Print more details of what is happening.
+
+__EOF__
+
+    exit($exitStatus);
+}
+
+
+sub errmsg
+{
+    print "$program: ERROR: ";
+    printf @_;
+    print "\n";
+
+    ++$numErrors;
+}
+
+
+sub warnmsg
+{
+    print "$program: Warning: ";
+    printf @_;
+    print "\n";
+
+    ++$numWarnings;
+}
+
+
+my $numContiguousBlocks = 0;
+my $firstBlockStart = 0;
+
+
+sub processBlock($)
+{
+    my ($rhBlock) = @_;
+
+    printf("Contiguous block at \$%04X of length \$%04X\n",
+            $rhBlock->{start},
+            length($rhBlock->{content})) if 0;
+
+    ++$numContiguousBlocks;
+    if ($numContiguousBlocks == 1)
+    {
+	$firstBlockStart = $rhBlock->{start};
+    }
+
+    if ($dumpContents)
+    {
+        my $fh;
+        if (!open($fh, "| od -tx1c"))
+        {
+            errormsg("failed to open pipe to od command: $!\n");
+            return;
+        }
+        if (syswrite($fh, $rhBlock->{content}) != length($rhBlock->{content}))
+        {
+            errormsg("failed to write to pipe to od command: $!\n");
+            return;
+        }
+        if (!close($fh))
+        {
+            errormsg("failed to close pipe to od command: $!\n");
+            return;
+        }
+    }
+
+    if ($dumpToRawFiles || $dumpToBinFiles)
+    {
+        my $fn = sprintf("coco-bin-block-%04x.%s",
+                        $rhBlock->{start},
+                        $dumpToRawFiles ? "raw" : "bin");
+        print "Creating block file $fn with ", length($rhBlock->{content}), " bytes\n";
+        my $fh;
+        if (!open($fh, "> $fn"))
+        {
+            errormsg("failed to create file for block: $!\n");
+            return;
+        }
+        if ($dumpToBinFiles)
+        {
+            my $header = pack("Cnn", length($rhBlock->{content}), $rhBlock->{start});
+            if (syswrite($fh, $header) != 5)
+            {
+                errormsg("failed to write header to block file: $!\n");
+                return;
+            }
+        }
+        if (syswrite($fh, $rhBlock->{content}) != length($rhBlock->{content}))
+        {
+            errormsg("failed to write to block file: $!\n");
+            return;
+        }
+        if ($dumpToBinFiles)
+        {
+            my $footer = pack("Cnn", 0, 0);
+            if (syswrite($fh, $footer) != 5)
+            {
+                errormsg("failed to write footer to block file: $!\n");
+                return;
+            }
+        }
+        if (!close($fh))
+        {
+            errormsg("failed to close block file: $!\n");
+            return;
+        }
+    }
+}
+
+###############################################################################
+
+
+my $showUsage = 0;
+
+if (!GetOptions(
+    "help" => \$showUsage,
+    "version" => \$showUsage,
+    "not-really" => \$dryRun,
+    "verbose" => \$verbose,
+    "dump-hex" => \$dumpContents,
+    "dump-to-raw-files" => \$dumpToRawFiles,
+    "dump-to-bin-files" => \$dumpToBinFiles,
+    ))
+{
+    exit 1;
+}
+
+usage(0) if $showUsage;
+usage(1) if @ARGV != 1;
+
+$| = 1;  # no buffering on STDOUT
+
+my $binFilename = shift;
+if (!open(BIN, $binFilename))
+{
+    errmsg("failed to open $binFilename: $!");
+    exit 1;
+}
+
+
+my $osAt2600 = 0;
+my $contentLength = 0;
+my $entryPoint;
+my $rhBlock;
+    # content => undef,  # string
+    # start => undef,  # adress of beginning of block
+
+while ((read(BIN, $_, 5) || 0) == 5)
+{
+    my ($code, $n0, $n1) = unpack("Cnn", $_);
+    unless ($code == 0 || $code == 0xFF)
+    {
+        errmsg("invalid byte \$%02x at offset %u", $code, tell(BIN) - length($_));
+        exit 1;
+    }
+    if ($code == 0xFF)
+    {
+        $entryPoint = $n1;
+        last;
+    }
+    printf("Block at \$%04X (%5u) of length \$%04X (%5u): end at \$%04X\n",
+            $n1, $n1, $n0, $n0, $n1 + $n0);
+    $contentLength += $n0;
+    read(BIN, my $data, $n0) == $n0 or die;
+
+    if ($n1 == 0x2600 && substr($data, 0, 2) eq "OS")
+    {
+        $osAt2600 = 1;
+    }
+
+    if (defined $rhBlock && $rhBlock->{start} + length($rhBlock->{content}) == $n1)
+    {
+        $rhBlock->{content} .= $data;
+        next;
+    }
+
+    if (defined $rhBlock)  # previous block not continued
+    {
+        processBlock($rhBlock);
+        $rhBlock = undef;
+    }
+
+    if (!defined $rhBlock)
+    {
+        $rhBlock = { content => $data, start => $n1 };
+    }
+}
+close(BIN) or die;
+
+if (defined $rhBlock)
+{
+    processBlock($rhBlock);
+    $rhBlock = undef;
+}
+
+if (!defined $entryPoint)
+{
+    print "ERROR: entry point not found.\n";
+    exit 1;
+}
+
+my $fileLen = -s $binFilename;
+
+printf("BIN file length: \$%04X (%5u)\n", $fileLen, $fileLen);
+printf("Entry point    : \$%04X (%5u)\n", $entryPoint, $entryPoint);
+printf("Content length : \$%04X (%5u)\n", $contentLength, $contentLength);
+printf("Overhead       : %5.1f %%\n", 100 * ($fileLen - $contentLength) / $contentLength);
+
+if ($numContiguousBlocks == 1)
+{
+    printf("Single continuous block goes from \$%04X (%5u) to \$%04X (%5u)\n",
+            $firstBlockStart,
+            $firstBlockStart,
+            $firstBlockStart + $contentLength,
+            $firstBlockStart + $contentLength);
+}
+
+if ($osAt2600 && $entryPoint == 0x2602)
+{
+    print "Track 34 format.\n";
+}
+
+exit 0;
