@@ -1,95 +1,53 @@
 
  ORG $3000
 hello FCN "HELLO WORLD!123456789ABCDEFGHIJK" ; hello world string.
+line1 FCN "THIS PROGRAM IS MEANT TO        " 
+line2 FCN "SIMULATE TEXT PRINTED TO A TTY  "
 speed EQU $FA ; speed in ms for our wait routine. 
+tone EQU 1 ;tone value for BASIC SOUND routine
+duration EQU 0 ; duration value for BASIC SOUND routine
  ORG $4000
 Start:
 ;Main
-;XXX! make this a loop instead
+
  PSHS A,B,X,Y,CC ;save state for future return to basic.
  JSR cls
-
+  
  LDY #$400
- LDX #hello
- JSR writesub
-
+again  LDX #hello
  JSR wait
- LDY #$420
- LDX #hello
  JSR writesub
-
+ LDX #line1
  JSR wait
- LDY #$440
- LDX #hello
  JSR writesub
-
+ LDX #line2
  JSR wait
- LDY #$460
- LDX #hello
  JSR writesub
-
- JSR wait
- LDY #$480
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$4A0
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$4C0
- LDX #hello
- JSR writesub
-
- LBSR wait
- LDY #$4E0
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$500
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$520
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$540
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$560
- LDX #hello
- JSR writesub
-
- LBSR wait
- LDY #$580
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$5A0
- LDX #hello
- JSR writesub
-
- JSR wait
- LDY #$5C0
- LDX #hello
- LBSR writesub
-
- JSR wait
- LDY #$5E0
- LDX #hello
- JSR writesub
-
+ CMPY #$400+511
+ BLO again
 
  JMP RSDOS
+
+;Copied from CMOC C Library
+;calls the BASIC SOUND routine from ROM.
+sound:
+ PSHS A,B,X
+ LDB tone
+ STB $8C
+ LDB duration 
+ CLRA
+ LSLB
+ ROLA
+ LSLB
+ ROLA
+ PSHS B,A
+ LDX #$8D
+ LDD ,S++
+ STD ,X
+ JSR $A956
+ STA $ff20
+ PULS A,B,X
+ RTS
 
 ;Waste time
 ;based on example 12-11 of 6809 Assembly language programming
@@ -108,13 +66,12 @@ DLY DECB
 ; cls subroutine that uses X and D 
 ; Suggested by Simon Jonassen
 cls:
- PSHS X,D
  LDX #$400
- LDD #$FFFF
+; LDD #$FFFF ;orange
+ LDD #$8080 ;black
 clsloop STD ,X++
  CMPX #$600
  BLO clsloop
- PULS X,D
  RTS
 
 
@@ -123,17 +80,16 @@ clsloop STD ,X++
 ;X can point anywhere in ram Y must be between $400 and $400+511
 writesub: 
 writeloop:
- LDA #100
+ LDA #60
  STA speed ; set wait loop speed to 100ms
  LDA ,X+ ;grab char from string
- CMPA #00 ;check for null
+; CMPA #00 ;check for null
  BEQ writesubreturn
- CMPY #$400+511 ;test for screen end
- BEQ WRAP
+ CMPY #$400+512 ;test for screen end
+ BEQ writesubreturn
  JSR wait 
+ JSR sound
  STA ,Y+ ;write char to screen
- JMP writeloop
-WRAP LDY #$400 ; reset screen pointer so we can wrap around for long strings. 
  JMP writeloop
 writesubreturn:
  LDA #250
