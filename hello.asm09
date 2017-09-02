@@ -3,38 +3,70 @@
 hello FCN "HELLO WORLD!123456789ABCDEFGHIJK" ; hello world string.
 line1 FCN "THIS PROGRAM IS MEANT TO        " 
 line2 FCN "SIMULATE TEXT PRINTED TO A TTY  "
-speed EQU $FA ; speed in ms for our wait routine. 
-tone EQU 1 ;tone value for BASIC SOUND routine
-duration EQU 0 ; duration value for BASIC SOUND routine
+msg FCN "SPEEDING UP BY 10MS"
+speed FCB 100 ; default wait speed if not set.
+song FCB 78,2,170,2,125,2,193,2,147,2,204,2,159,2,210,2,$FF
  ORG $4000
 Start:
 ;Main
 
  PSHS A,B,X,Y,CC ;save state for future return to basic.
  JSR cls
+ 
+ 
+ ; Load a sequence of tone,duration values from memory and call sound in turn for each one
+ LDX #song ; set pointer to song array
+play  LDA ,X+ ; load tone
+ CMPA #$FF ; check for end of array
+ BEQ endplay
+ LDB ,X+ ; load duration
+ PSHU B,A ;send values to U stack
+ JSR sound ; Finally call the sound subroutine
+ JMP play ; continue
+endplay LDA #1 ; set tone to 1 and duration to 0
+ LDB #0
+ PSHU B,A 
+ 
   
- LDY #$400
+ LDY #$400 ; set screen pointer
 again  LDX #hello
- JSR wait
+; JSR wait
  JSR writesub
  LDX #line1
- JSR wait
+; JSR wait
  JSR writesub
  LDX #line2
- JSR wait
+; JSR wait
  JSR writesub
  CMPY #$400+511
  BLO again
-
- JMP RSDOS
+; we finished a full run, now clear the screen and increase the speed by 10 until we have a 0ms delay
+; then we fall off into RSDOS
+ JSR cls ; clear screen.
+ LDY #$400 ; reset Y or else writesub will fail.
+ LDX #msg ; point to msg
+ JSR writesub ; write msg
+ LDA speed ; put current speed in A
+ LDB #250 
+ STB speed ;temp set speed to 250 before calling
+ JSR wait  ;wait
+ SUBA #10
+ CMPA #0 ; not sure if necessary with SUBA 
+ BEQ RSDOS
+ STA speed ; store original speed - 10 back to speed.
+ LDX #song ;set X up correctly for the song player routine we are about to jump back into.
+ JMP play 
 
 ;Copied from CMOC C Library
 ;calls the BASIC SOUND routine from ROM.
+;gets tone and duration from U stack. We save and restore U
+;at start and end of this routine so it's possible to push them once and then
+;continually JSR to sound and get the same tone/delay every time.
 sound:
- PSHS A,B,X
- LDB tone
+ PSHS A,B,X,U ; U is pushed because basic screws with it.
+ PULU B ;tone
  STB $8C
- LDB duration 
+ PULU B ;duration
  CLRA
  LSLB
  ROLA
@@ -46,7 +78,7 @@ sound:
  STD ,X
  JSR $A956
  STA $ff20
- PULS A,B,X
+ PULS A,B,X,U
  RTS
 
 ;Waste time
@@ -80,8 +112,6 @@ clsloop STD ,X++
 ;X can point anywhere in ram Y must be between $400 and $400+511
 writesub: 
 writeloop:
- LDA #60
- STA speed ; set wait loop speed to 100ms
  LDA ,X+ ;grab char from string
 ; CMPA #00 ;check for null
  BEQ writesubreturn
@@ -92,8 +122,6 @@ writeloop:
  STA ,Y+ ;write char to screen
  JMP writeloop
 writesubreturn:
- LDA #250
- STA speed ; set wait loop speed to 250ms
  RTS
 
 
