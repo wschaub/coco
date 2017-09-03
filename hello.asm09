@@ -4,31 +4,41 @@ hello FCN "HELLO WORLD!123456789ABCDEFGHIJK" ; hello world string.
 line1 FCN "THIS PROGRAM IS MEANT TO        " 
 line2 FCN "SIMULATE TEXT PRINTED TO A TTY  "
 msg FCN "SPEEDING UP BY 10MS"
-speed FCB 100 ; default wait speed if not set.
-song FCB 78,2,170,2,125,2,193,2,147,2,204,2,159,2,210,2,$FF
+speed FCB 250 ; default wait speed if not set.
+song FCB 78,2,170,2,125,2,193,2,147,2,204,2,159,2,210,2,78,2,$FF
+; black $80
+colors FCB $80,$8F,$9F,$AF,$BF,$CF,$DF,$EF,$FF,$01
  ORG $4000
 Start:
 ;Main
 
  PSHS A,B,X,Y,CC ;save state for future return to basic.
  JSR cls
- 
- 
+
  ; Load a sequence of tone,duration values from memory and call sound in turn for each one
  LDX #song ; set pointer to song array
+colorreset LDY #colors
 play  LDA ,X+ ; load tone
  CMPA #$FF ; check for end of array
  BEQ endplay
  LDB ,X+ ; load duration
  PSHU B,A ;send values to U stack
  JSR sound ; Finally call the sound subroutine
+ LDB ,Y+
+ CMPB #$01
+ BEQ colorreset
+ JSR bcls
+ JSR wait
  JMP play ; continue
 endplay LDA #1 ; set tone to 1 and duration to 0
- LDB #0
+setup LDB #0
  PSHU B,A 
- 
-  
- LDY #$400 ; set screen pointer
+ LDA speed
+ CMPA #250
+ BNE endsetup ; we need to set the speed down to 100 but not hit this point later when the program is rerun.
+ LDA #100
+ STA speed
+endsetup LDY #$400 ; set screen pointer
 again  LDX #hello
 ; JSR wait
  JSR writesub
@@ -52,10 +62,10 @@ again  LDX #hello
  JSR wait  ;wait
  SUBA #10
  CMPA #0 ; not sure if necessary with SUBA 
- BEQ RSDOS
+ LBEQ RSDOS
  STA speed ; store original speed - 10 back to speed.
  LDX #song ;set X up correctly for the song player routine we are about to jump back into.
- JMP play 
+ JMP colorreset 
 
 ;Copied from CMOC C Library
 ;calls the BASIC SOUND routine from ROM.
@@ -95,6 +105,16 @@ DLY DECB
  PULS A,B,CC
  RTS
 
+;cls that just uses whatever happens to be in the B register at the time.
+bcls:
+ PSHS X,A
+ LDX #$400
+ TFR B,A
+bclsloop STD ,X++
+ CMPX #$600
+ BLO bclsloop
+ PULS X,A
+ RTS
 ; cls subroutine that uses X and D 
 ; Suggested by Simon Jonassen
 cls:
