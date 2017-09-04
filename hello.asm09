@@ -177,19 +177,13 @@ scroll
  LDY #$400+32 ; source
 scrloop PSHU Y,X,A
  JSR memcpy
- TFR X,D
- ADDD #32
- TFR D,X
- TFR Y,D
- ADDD #32
- TFR D,Y
+ LEAX 32,X ; increment X by 32
+ LEAY 32,Y ; increment Y by 32
  CMPY #$600
  BEQ scrcl ; jump to clear line code
  LDA #32
  JMP scrloop 
-scrcl TFR Y,D ; setup to clear away the last line. 
- SUBD #32
- TFR D,X
+scrcl LEAX -32,Y ; set X to the beginning of the last line.
  LDA #$8F
 scrcloop STA ,X+
  CMPX #$600
