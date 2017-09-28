@@ -1,0 +1,54 @@
+ ORG $3000
+OPENS FCB $99
+      FCN '"I",#1,"HELLO/DAT"'
+      FCB 0
+CLOSES FCB $9A
+       FCN '#1'
+       FCB $0
+DEVNUM EQU $6F
+CONIN  EQU $016A
+CINBFL EQU $0070
+_RETADDR RMB 2
+Start:
+    ;open a file using BASIC OPEN call from BASIC, yes this is chating..
+    LDX <$A6
+    PSHS X ;save program pointer
+    LEAX OPENS,PCR
+    BSR BASIC
+    LDY #$400
+loop LDA #$1 ;read first char of file 1
+    STA <DEVNUM
+    LDX #CONIN
+    JSR DOS
+    LDB CINBFL ;load console in buffer flag
+    CMPB #$FF
+    BEQ rtb
+    CMPY #$600
+    BEQ wrap
+    STA ,Y+
+    JMP loop
+wrap LDY #$400
+     STA ,Y+
+     JMP loop
+rtb JMP rtb
+    LEAX CLOSES,PCR
+    BSR BASIC
+    PULS X ; restore settings to return to basic on RTS
+    CLRA
+    STA <DEVNUM
+    STX <$A6
+    RTS
+BASIC   STX <$A6
+        LDA ,X
+        ANDCC #$FE
+        JSR $ADC6
+        RTS
+DOS PULS D ;grab our return address 
+    STD _RETADDR,PCR ; store it in memory
+    PSHS D ; put it back on the stack where it belongs
+    LDD #_DOSRETURN ; push _RETADDR onto stack so dos call returns to us otherwise
+    PSHS D        ;it obliterates the return address on purpose!
+    JSR [1,X] ;jump to vector pointed to in X skip over the JMP instruction stored there.
+_DOSRETURN JMP [_RETADDR] ; return control to caller. 
+
+    END Start
