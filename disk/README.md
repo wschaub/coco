@@ -1,4 +1,9 @@
 This directory contains disk IO routines. 
 * rsdos.asm09 
-  Uses calls to BASIC and to certain well known vector addresses to read from a disk file.
+  Demonstrates how to do sequential IO using the code in rsdoslib.asm09
+
+* rsdoslib.asm09 
+  simple equates and subroutines to enable calls to BASIC and calls
+  to console in and out vectors to perform sequential reads and writes
+  to RSDOS files. 
 
