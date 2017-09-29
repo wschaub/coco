@@ -20,17 +20,9 @@ CLOSEWS FCB $9A
 *string to write to file 2
 WRITES FCN 'HELLO WORLD!'
        FCB 0
-DEVNUM EQU $6F  ;address of current console file/device number
-CONIN  EQU $016A ; vector address for console in
-CONOUT EQU $0167 ; vector address for console out
-*console in buffer status address
-* 00 = not empty
-* FF = empty/end of file
-CINBFL EQU $0070 
 Start:
     ;open a file using BASIC OPEN call from BASIC, yes this is chating..
-    LDX <$A6
-    PSHS X ;save program pointer
+    BSR BASIC_SETUP
     LEAX OPENS,PCR
     BSR BASIC ; open file 1 for reading
     LDY #$400
@@ -64,24 +56,6 @@ writeloop   LDA ,Y+
 _writeend:
             LEAX CLOSEWS,PCR 
             BSR BASIC
-rtb: 
-    PULS X ; restore settings to return to basic on RTS
-    CLR <DEVNUM
-    STX <$A6
-    RTS
-BASIC   STX <$A6
-        LDA ,X
-        ANDCC #$FE
-        JSR $ADC6
-        RTS
-;JSR to the subroutine at vector X
-;skip over the opcode at the vector using indirect addressing.
-;all vector hooks will call LEAS $2,S so we push our return address
-;to the stack before calling. This seems to prevent our return
-;address getting clobbered. 
-DOS     PSHS Y ;preserve Y
-        LDY  #_DOSEND ;grab address to return to
-        PSHS Y        ;push it to the stack so we can return
-        JSR [1,X] ;jump to vector pointed to in X skip over the JMP instruction stored there.
-_DOSEND    PULS Y,PC ;control should return here
-    END Start
+            BRA BASIC_RETURN
+    include rsdoslib.asm09
+            END Start

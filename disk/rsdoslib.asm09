@@ -1,0 +1,34 @@
+*Everything below this point is meant to be included in your ASM program to enable calls to basic
+*and to RSDOS CONIN and CONOUT for sequental file I/O
+DEVNUM EQU $6F  ;address of current console file/device number
+CONIN  EQU $016A ; vector address for console in
+CONOUT EQU $0167 ; vector address for console out
+*console in buffer status address
+* 00 = not empty
+* FF = empty/end of file
+CINBFL EQU $0070 
+_BASPTR RMB 2
+BASIC_SETUP:
+    LDX <$A6
+    STX _BASPTR,PCR
+    RTS
+BASIC_RETURN: 
+    LDX _BASPTR,PCR
+    CLR <DEVNUM
+    STX <$A6
+    RTS
+BASIC   STX <$A6
+        LDA ,X
+        ANDCC #$FE
+        JSR $ADC6
+        RTS
+;JSR to the subroutine at vector X
+;skip over the opcode at the vector using indirect addressing.
+;all vector hooks will call LEAS $2,S so we push our return address
+;to the stack before calling. This seems to prevent our return
+;address getting clobbered. 
+DOS     PSHS Y ;preserve Y
+        LDY  #_DOSEND ;grab address to return to
+        PSHS Y        ;push it to the stack so we can return
+        JSR [1,X] ;jump to vector pointed to in X skip over the JMP instruction stored there.
+_DOSEND    PULS Y,PC ;control should return here
