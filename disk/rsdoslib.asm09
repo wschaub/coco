@@ -17,11 +17,13 @@ BASIC_RETURN:
     CLR <DEVNUM
     STX <$A6
     RTS
-BASIC   STX <$A6
+BASIC:  
+        PSHS U,X,CC
+        STX <$A6
         LDA ,X
         ANDCC #$FE
         JSR $ADC6
-        RTS
+        PULS U,X,CC,PC
 ;JSR to the subroutine at vector X
 ;skip over the opcode at the vector using indirect addressing.
 ;all vector hooks will call LEAS $2,S so we push our return address
