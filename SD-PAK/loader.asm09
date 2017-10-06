@@ -1,0 +1,21 @@
+    ORG $0E00
+    *string for loadm
+LOADM FCB $D3
+      FCN 'M"ROMPAK"'
+      FCB 0
+EXEC  FCB $A2
+      FCB 0
+BASIC:
+    PSHS U,X,CC
+    STX <$A6
+    LDA ,X
+    ANDCC #$FE
+    JSR $ADC6
+    PULS U,X,CC,PC
+
+Start:
+    LEAX LOADM,PCR
+    JSR BASIC,PCR
+    LEAX EXEC,PCR
+    JSR BASIC,PCR
+    END Start
