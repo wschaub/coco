@@ -18,3 +18,7 @@ for people that would rather use lwasm instead of edtasm.
 how I do that (using P8.ASM as an example):
 decb copy lesson3.dsk,P8.ASM P8.ASM
 mac2unix P8.ASM
+
+NOTE: Some programs do not run well (crash) on a system with disk basic
+I may try and fix them as I get time the following is a list of programs I know about so far:
+ * Lesson 9 program 16 should be saved to and then run from tape with no disk controller connected to the system.
