@@ -3,34 +3,82 @@
 DEVNUM EQU $6F  ;address of current console file/device number
 CONIN  EQU $016A ; vector address for console in
 CONOUT EQU $0167 ; vector address for console out
+VERR   EQU $0192 ; vector for RSDOS error trap routine.
+                 ;actually 1 byte ahead of the actual vector 
+                 ;to jump ahead of the opcode.
 *console in buffer status address
 * 00 = not empty
 * FF = empty/end of file
 CINBFL EQU $0070 
+;Possible ERRNO values
+;   DEC:    HEX:    ABBR:   DESC:
+;    19      13     AO      File already open 
+;    20      14     DN      Bad Device or drive number
+;    21      15     IO      Input/Output error
+;    22      16     FM      Bad File mode
+;    23      17     NO      File not open
+;    24      18     IE      input past end of file
+;    27      1B     NE      File not found
+;    29      1D     DF      Disk space full
+;    30      1E     OB      Out of buffer space
+;    31      1F     WP      Diskette write protected
+;    32      20     FN      Bad filename
+;    33      21     FS      Bas file structure
+;    37      25     VF      Verification error
+     
+ERRNO FCB $0 ;DOS/Basic calls will leave error status here.
 _BASPTR RMB 2
+_ORIGERR RMB 2 ;save original error vector here.
 BASIC_SETUP:
     LDX <$A6
     STX _BASPTR,PCR
-    RTS
+   ;setup our error trap
+   LDX VERR ;load in the original address from the vector
+   STX _ORIGERR,PCR ;save it
+   LEAX ERRTRAP,PCR  ;point to our error trap.
+   STX VERR
+   RTS
 BASIC_RETURN: 
     LDX _BASPTR,PCR
     CLR <DEVNUM
     STX <$A6
+    LDX _ORIGERR,PCR ;restore RSDOS error trap.
+    STX VERR
     RTS
 BASIC:  
-        PSHS U,X,CC
+        PSHS U,X
+        CLR ERRNO,PCR ;clear error status
         STX <$A6
         LDA ,X
         ANDCC #$FE
         JSR $ADC6
-        PULS U,X,CC,PC
+        TST ERRNO,PCR ;test error status
+                      ;Z flag set on no error.
+        PULS U,X,PC
 ;JSR to the subroutine at vector X
 ;skip over the opcode at the vector using indirect addressing.
 ;all vector hooks will call LEAS $2,S so we push our return address
 ;to the stack before calling. This seems to prevent our return
 ;address getting clobbered. 
 DOS     PSHS Y ;preserve Y
+        CLR ERRNO,PCR ; clear error status
         LDY  #_DOSEND ;grab address to return to
         PSHS Y        ;push it to the stack so we can return
         JSR [1,X] ;jump to vector pointed to in X skip over the JMP instruction stored there.
-_DOSEND    PULS Y,PC ;control should return here
+
+_DOSEND TST ERRNO,PCR ;test error status
+                      ;Z flag set on no error.
+        PULS Y,PC ;control should return here
+
+;never call this directly!
+;this replaces the RSDOS error routine so we ourselves
+;can check for error conditions instead of being dumped back to basic.
+;This routine is adapted from Roger Schrag's article in the July 1983 edition
+;of the rainbow.
+ERRTRAP:
+    LSRB ;B= error code
+    INCB ;divide by 2 add 1
+    LEAS 2,S
+    STB ERRNO,PCR ;store error status
+    TST ERRNO,PCR ;clear Z flag (probably not needed)
+    RTS
