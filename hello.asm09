@@ -1,5 +1,4 @@
-
- ORG $3000
+ ORG $4000
 hello FCN "HELLO WORLD!123456789ABCDEFGHIJK" ; hello world string.
 line1 FCN "THIS PROGRAM IS MEANT TO        " 
 line2 FCN "SIMULATE TEXT PRINTED TO A TTY  "
@@ -9,13 +8,24 @@ speed FCB 250 ; default wait speed if not set.
 song FCB 78,2,170,2,125,2,193,2,147,2,204,2,159,2,210,2,78,2,$FF
 ; black $80
 colors FCB $80,$8F,$9F,$AF,$BF,$CF,$DF,$EF,$FF,$01
- ORG $4000
+mcpylen FCB 0
+opens FCB $99   ;BASIC open token
+      FCN '"I",#1,"SRC/DAT"'
+      FCB 0
+closes FCB $9A  ;BASIC close token
+       FCN '#1' 
+       FCB 0
+buffer RMB 255
+       FCB 0
 Start:
 ;Main
 
- PSHS A,B,X,Y,CC ;save state for future return to basic.
+; PSHS A,B,X,Y,CC ;save state for future return to basic.
+ LDA #$10
+ STA $FF22
+ JSR BASIC_SETUP
  JSR cls
-
+ BRA setup ;XXX! skip everything but setup.
  ; Load a sequence of tone,duration values from memory and call sound in turn for each one
  LDX #song ; set pointer to song array
 colorreset LDY #colors
@@ -40,6 +50,9 @@ setup LDB #0
  LDA #100
  STA speed
 endsetup LDY #$400 ; set screen pointer
+ LDA #50
+ STA speed
+ JSR readfile ; XXX! jump straight into file read routine for testing.
 again  LDX #hello
 ; JSR wait
  JSR writesub
@@ -71,10 +84,49 @@ sloop JSR scroll
  JSR wait  ;wait
  SUBA #10
  CMPA #0 ; not sure if necessary with SUBA 
- LBEQ RSDOS
+ LBEQ readfile
  STA speed ; store original speed - 10 back to speed.
  LDX #song ;set X up correctly for the song player routine we are about to jump back into.
  JMP colorreset 
+testpatern:
+    PSHS Y,A
+    CLRA
+    LDY #$400
+    STA ,Y+
+_testpatternloop:
+    INCA
+    STA ,Y+
+    CMPA #255
+    BNE _testpatternloop
+    PULS Y,A,PC
+    
+readfile:
+    JSR testpatern
+    LDA #250
+    STA speed
+    JSR wait
+    LDA #50
+    STA speed
+    LEAX opens,pcr
+    JSR BASIC
+    LDA #$1
+    STA <DEVNUM
+    LDY #$600-32
+_rfloop JSR readbuffer
+    CMPA #$FF
+    BEQ _readfileeof 
+    LDX #buffer
+    JSR writesub
+    BRA _rfloop
+_readfileeof:
+    LDX #buffer
+    JSR writesub
+    LEAX closes,pcr
+    JSR BASIC
+halt BRA halt     
+     RTS 
+
+
 
 ;Copied from CMOC C Library
 ;calls the BASIC SOUND routine from ROM.
@@ -82,7 +134,7 @@ sloop JSR scroll
 ;at start and end of this routine so it's possible to push them once and then
 ;continually JSR to sound and get the same tone/delay every time.
 sound:
- PSHS A,B,X,U ; U is pushed because basic screws with it.
+ PSHS A,B,X,U,CC ; U is pushed because basic screws with it.
  PULU B ;tone
  STB $8C
  PULU B ;duration
@@ -95,10 +147,10 @@ sound:
  LDX #$8D
  LDD ,S++
  STD ,X
+ ANDCC #$af
  JSR $A956
  STA $ff20
- PULS A,B,X,U
- RTS
+ PULS A,B,X,U,CC,PC
 
 ;Waste time
 ;based on example 12-11 of 6809 Assembly language programming
@@ -140,20 +192,30 @@ clsloop STD ,X++
 ;writesub writes null terminated string pointed to by X to screen pointed to by Y
 ;X can point anywhere in ram Y must be between $400 and $400+511
 writesub: 
- PSHS A
+ PSHS A,B
+ CLRB
 writeloop:
  LDA ,X+ ;grab char from string
-; CMPA #00 ;check for null
+ CMPA #00 ;check for null
  BEQ writesubreturn
+ JSR vdgconvert
  CMPY #$400+512 ;test for screen end
- BEQ writesubreturn
+ BEQ _wsnl
  JSR wait 
  JSR sound
+ CMPA #$0A ;\n found?
+ BEQ _wsnl
  STA ,Y+ ;write char to screen
- JMP writeloop
+ BRA writeloop
+_wsnl:
+ LDY #$600-32
+ JSR scroll
+ CMPA #$0A ;write char after wrap unless it's a \n
+ BEQ writeloop
+ STA ,Y+
+ BRA writeloop
 writesubreturn:
- PULS A
- RTS
+ PULS A,B,PC
 ;memcpy slow btye at a time copy
 memcpy PSHS X,Y,A,B
  PULU A 
@@ -188,12 +250,73 @@ scrcl LEAX -32,Y ; set X to the beginning of the last line.
 scrcloop STA ,X+
  CMPX #$600
  BNE scrcloop
- PULS A,B,X,Y
- RTS
-
+ PULS A,B,X,Y,PC
+_readbuffercnt rmb 1
+readbuffer:
+    PSHS X,Y
+    LEAY buffer,pcr
+    CLR _readbuffercnt,pcr
+    LDX #CONIN
+_readbufferloop:    
+    LDA #$1
+    STA <DEVNUM
+    CLRA 
+    CLRB
+    JSR DOS
+    LDB CINBFL
+    CMPB #$FF
+    BEQ _readbuffereof
+    LDB _readbuffercnt
+    STA ,Y+
+    INCB
+    CMPB #255
+    BEQ _readbufferend
+    STB _readbuffercnt
+    BRA _readbufferloop
+_readbuffereof:
+    LDA #$FF
+    CLR ,Y+
+    PULS X,Y,PC
+_readbufferend:
+    CLRA
+    CLR ,Y+
+    CLR _readbuffercnt
+    PULS X,Y,PC
+; translate ASCII to VDG
+vdgconvert:
+    PSHS CC
+    CMPA #$19 ;check for control chars
+    BHI _vdgckuk ; else check for uppercase
+    BRA _vdgcntrl
+_vdgckuk CMPA #$3F ;check for symbols
+    BHI _vdgcklc ;else check for lowercase
+    BRA _vdgsym
+_vdgcklc CMPA #$5F ; check for lowercase
+    BHI _vdgcksg ;else check for semigraphics
+    CMPA #$5F ;_ conversion
+    BNE @next
+    LDA #$1F
+@next CMPA #$5E ; ^ conversion
+    BNE _vdgend
+    LDA #0
+    BRA _vdgend
+_vdgcksg CMPA #$7E ; check for semigraphics
+    BLO _vdgtolower ;lower case chars found
+    BRA _vdgend ; semigraphics chars found
+_vdgsym:
+    ORA #$40
+    BRA _vdgend
+_vdgtolower:
+    EORA #$60
+    BRA _vdgend
+_vdgcntrl:
+    CMPA #$0A
+    BEQ _vdgend ; pass \n through.
+    LDA #$60
+_vdgend PULS CC,PC
 ;Return to RSDOS
-RSDOS PULS A,B,X,Y,CC restore state ;exit to RSDOS
+;RSDOS PULS A,B,X,Y,CC restore state ;exit to RSDOS
+RSDOS LBRA BASIC_RETURN
  RTS return to basic 
-;variables
-mcpylen FCB 0
+ include disk/rsdoslib.asm09
  END Start
